@@ -8,6 +8,7 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
@@ -33,6 +34,20 @@ def create_app(test_config=None):
     for all available categories.
     """
 
+    @app.route("/categories")
+    def retrieve_books():
+        selection = Category.query.all()
+
+        if len(selection) == 0:
+            abort(404)
+
+        return jsonify(
+            {
+                "success": True,
+                "books": selection,
+                "total_books": len(selection),
+            }
+        )
 
     """
     @TODO:
@@ -104,4 +119,3 @@ def create_app(test_config=None):
     """
 
     return app
-
