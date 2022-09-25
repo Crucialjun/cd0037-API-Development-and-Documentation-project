@@ -14,9 +14,9 @@ def create_app(test_config=None):
     setup_db(app)
     CORS(app)
 
-    """
-    @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
-    """
+    @app.route("/")
+    def helloWorld():
+        return "Hello, cross-origin-world!"
 
     @app.after_request
     def after_request(response):
@@ -82,8 +82,7 @@ def create_app(test_config=None):
     Create a GET endpoint to get questions based on category.
 
     TEST: In the "List" tab / main screen, clicking on one of the
-    categories in the left column will cause only questions of that
-    category to be shown.
+    categories in the left ccd 
     """
 
     """
