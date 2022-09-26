@@ -41,10 +41,12 @@ def create_app(test_config=None):
         if len(selection) == 0:
             abort(404)
 
+        categories = [category.format() for category in selection]
+
         return jsonify(
             {
                 "success": True,
-                "books": selection,
+                "books": categories,
                 "total_books": len(selection),
             }
         )
