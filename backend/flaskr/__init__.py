@@ -9,15 +9,22 @@ from models import setup_db, Question, Category
 QUESTIONS_PER_PAGE = 10
 
 
+def paginate_questions(request, selection):
+    page = request.args.get("page", 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE
+
+    questions = [question.format() for question in selection]
+    current_questions = questions[start:end]
+
+    return current_questions
+
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
     setup_db(app)
     CORS(app)
-
-    @app.route("/")
-    def helloWorld():
-        return "Hello, cross-origin-world!"
 
     @app.after_request
     def after_request(response):
@@ -28,14 +35,9 @@ def create_app(test_config=None):
             "Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS"
         )
         return response
-    """
-    @TODO:
-    Create an endpoint to handle GET requests
-    for all available categories.
-    """
 
     @app.route("/categories")
-    def retrieve_books():
+    def retrieve_categories():
         selection = Category.query.all()
 
         if len(selection) == 0:
@@ -46,8 +48,30 @@ def create_app(test_config=None):
         return jsonify(
             {
                 "success": True,
-                "books": categories,
-                "total_books": len(selection),
+                "categories": categories,
+                "total_categories": len(selection),
+            }
+        )
+
+    @app.route("/questions")
+    def retrieve_questions():
+        selection = Question.query.order_by(Question.id).all()
+
+        current_questions = paginate_questions(request, selection)
+
+        categoriesSelection = Category.query.all()
+        categories = [category.format() for category in categoriesSelection]
+
+        if len(current_questions) == 0:
+            abort(404)
+
+        return jsonify(
+            {
+                "success": True,
+                "questions": current_questions,
+                "total_questions": len(selection),
+                "categories": categories,
+                "current_category": ""
             }
         )
 
