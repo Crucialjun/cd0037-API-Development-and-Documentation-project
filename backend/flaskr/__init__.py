@@ -1,3 +1,6 @@
+from collections import defaultdict
+import json
+from nis import cat
 import os
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -40,18 +43,21 @@ def create_app(test_config=None):
     def retrieve_categories():
         selection = Category.query.all()
 
+        ids = []
+
         if len(selection) == 0:
             abort(404)
 
+        for x in selection:
+            x.format()
+            ids.append(x)
+
         categories = [category.format() for category in selection]
 
-        return jsonify(
-            {
-                "success": True,
-                "categories": categories,
-                "total_categories": len(selection),
-            }
-        )
+        for category in categories:
+            ids.append({category['id']: category["type"]})
+
+        return jsonify(dict(categories[1]))
 
     @app.route("/questions")
     def retrieve_questions():
