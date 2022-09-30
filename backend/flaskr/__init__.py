@@ -2,6 +2,8 @@ from collections import defaultdict
 import json
 from nis import cat
 import os
+from select import select
+from unicodedata import category
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -48,16 +50,7 @@ def create_app(test_config=None):
         if len(selection) == 0:
             abort(404)
 
-        for x in selection:
-            x.format()
-            ids.append(x)
-
-        categories = [category.format() for category in selection]
-
-        for category in categories:
-            ids.append({category['id']: category["type"]})
-
-        return jsonify(dict(categories[1]))
+        return jsonify({'sucess': 'true', 'categories': {category.id: category.type for category in selection}})
 
     @app.route("/questions")
     def retrieve_questions():
