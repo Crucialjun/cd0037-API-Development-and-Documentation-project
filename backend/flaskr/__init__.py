@@ -6,16 +6,22 @@ from models import setup_db, Question, Category
 QUESTIONS_PER_PAGE = 10
 
 
+def paginate_questions(request, selection):
+    page = request.args.get("page", 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE
+
+    questions = [book.format() for book in selection]
+    current_questions = questions[start:end]
+
+    return current_questions
+
+
 def create_app(test_config=None):
-    # create and configure the app
     app = Flask(__name__)
     setup_db(app)
-
-    # Set up CORS. Allow '*' for origins.
-    # Delete the sample route after completing the TODOs
     CORS(app)
 
-    # Use the after_request decorator to set Access-Control-Allow
     @app.after_request
     def add_access_control(response):
         response.headers.add(
@@ -28,32 +34,23 @@ def create_app(test_config=None):
 
         return response
 
-    # Create an endpoint to handle GET requests for all available categories.
     @app.route('/categories', methods=['GET'])
     def get_categories():
-        categories = Category.query.order_by(Category.type).all()
+        selection = Category.query.order_by(Category.type).all()
 
-        if len(categories) == 0:
+        if len(selection) == 0:
             abort(404)
 
         return jsonify({'success': True, 'categories': {
-            category.id: category.type for category in categories
+            category.id: category.type for category in selection
         }})
 
-    # Create an endpoint to handle GET requests for questions
     @app.route('/questions', methods=['GET'])
     def get_questions():
-        all_questions = Question.query.order_by(Question.id).all()
-        page = request.args.get('page', 1, type=int)
+        selection = Question.query.order_by(Question.id).all()
 
-        # Setting start / end points based on static
-        # QUESTIONS_PER_PAGE variable
-        start = (page - 1) * QUESTIONS_PER_PAGE
-        end = start + QUESTIONS_PER_PAGE
-
-        # Applying pagination to incoming question set
-        questions = [question.format() for question in all_questions]
-        paginated_questions = questions[start:end]
+        paginated_questions = paginate_questions(
+            request=request, selection=selection)
 
         categories = Category.query.order_by(Category.type).all()
 
@@ -63,19 +60,18 @@ def create_app(test_config=None):
         return jsonify({
             'success': True,
             'questions': paginated_questions,
-            'total_questions': len(all_questions),
+            'total_questions': len(selection),
             'categories': {category.id: category.type
                            for category in categories},
             'current_category': None
         })
 
-    # Create an endpoint to DELETE question using a question ID.
     @app.route('/questions/<question_id>', methods=['DELETE'])
     def delete_question(question_id):
         try:
-            question = Question.query.get(question_id)
+            selection = Question.query.get(question_id)
 
-            question.delete()
+            selection.delete()
 
             return jsonify({
                 'success': True,
@@ -84,7 +80,6 @@ def create_app(test_config=None):
         except BaseException:
             abort(422)
 
-    # Endpoint to POST new question
     @app.route('/questions', methods=['POST'])
     def create_question():
 
@@ -113,7 +108,6 @@ def create_app(test_config=None):
         except BaseException:
             abort(422)
 
-    # POST endpoint to get questions based on search term
     @app.route('/questions/search', methods=['POST'])
     def search_questions():
         body = request.get_json()
@@ -135,40 +129,33 @@ def create_app(test_config=None):
 
         abort(404)
 
-    # Get questions by category
     @app.route('/categories/<int:category_id>/questions', methods=['GET'])
     def get_category_questions(category_id):
-        questions = Question.query.filter(
+        selection = Question.query.filter(
             Question.category == category_id).all()
 
-        if len(questions) == 0:
+        if len(selection) == 0:
             abort(404)
 
         return jsonify({
             'success': True,
-            'questions': [question.format() for question in questions],
-            'total_questions': len(questions),
+            'questions': [question.format() for question in selection],
+            'total_questions': len(selection),
             'current_category': category_id
         })
 
-    # POST endpoint to play quiz
     @app.route('/quiz', methods=['POST'])
     def play_quiz():
 
         try:
-            # Getting body data from POST request
             body = request.get_json()
 
-            # Ensuring data is present from POST request
             if not ('quiz_category' in body and 'previous_questions' in body):
                 abort(422)
 
-            # Pulling information from data body into respective variables
             category = body.get('quiz_category')
             previous_questions = body.get('previous_questions')
 
-            # Defining behavior for what to return based on where a user is at
-            # in their quiz
             if category['type'] == 'click':
                 available_questions = Question.query.filter(
                     Question.id.notin_(previous_questions)).all()
@@ -178,21 +165,18 @@ def create_app(test_config=None):
                     Question.id.notin_(
                         previous_questions)).all()
 
-            # Getting random question from list of available_questions
             new_question = available_questions[random.randrange(
                 0, len(available_questions))].format() if \
                 len(available_questions) > 0 else None
 
-            # Returning successful information
             return jsonify({
                 'success': True,
                 'question': new_question
             })
-        # Handling error scenarios
+
         except BaseException:
             abort(422)
 
-    # Error handlers
     @app.errorhandler(400)
     def bad_request(error):
         return jsonify({
